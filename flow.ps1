@@ -1,11 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet('start', 'finish', 'abort')]
+    [ValidateSet('start', 'kill')]
     $Cmd,
-    [Parameter(Position = 1, Mandatory = $true)]
-    [ValidateSet('feature', 'bugfix', 'release', 'hotfix')]
-    $SubCmd,
     [Parameter(Position = 2, Mandatory = $false)]
     [string]
     $Name
@@ -22,60 +19,34 @@ try {
     $dirty += &{ git diff-index --name-only HEAD }
 
     if($dirty) {
-        throw "The folder is not clean. Commit or stash changes first."
+        throw "The folder is not clean. Commit, revert, or stash changes first."
     }
-
-    # Base branch for the operation
-    switch -regex ($SubCmd) {
-        'feature|bugfix|release' {
-            $base = 'develop'
-        }
-        'hotfix' {
-            $base = 'master'
-        }
-    }
-
-    # Fallback default name (to the current branch)
-    if (-not $Name) {
-        switch ($Cmd) {
-            'start' {
-                throw 'Missed $Name parameter.'
-            }
-            'finish' {
-                $current = git branch --show-current || `
-                    &{ throw $exeError }
-
-                if (-not ($current -match "^$SubCmd/")) {
-                    throw "$current is not a $SubCmd branch."
-                }
-
-                $Name = $current -replace "^$SubCmd/", ""
-            }
-        }
-    }
-
-    # sync base branch
-    git checkout $base && git pull || `
-        &{ throw $exeError }
 
     switch($Cmd) {
         'start' {
+            if(-not $Name) {
+                throw 'The $Name parameter is missing.'
+            }
+
             # create the feature/etc branch and set tracking
-            git checkout -b "$SubCmd/$Name" && `
-                git push -u origin "$SubCmd/$Name" || `
+            git checkout develop && `
+                git checkout -b $Name && `
+                git push -u origin $Name || `
                 &{ throw $exeError }
         }
-        'finish' {
-            # cleanup the feature/etc branch
-            git remote prune origin && `
-                git branch -d "$SubCmd/$Name" || `
-                &{ throw $exeError }
-        }
-        'abort' {
-            # drop both remote and local branches
-            git push -d origin "$SubCmd/$Name" && `
-                git remote prune origin && `
-                git branch -d "$SubCmd/$Name" || `
+        'kill' {
+            if(-not $Name) {
+                $Name = git branch --show-current && `
+                    &{ throw $exeError }
+            }
+
+            if($Name -eq 'develop'){
+                throw 'Cannot kill develop branch.'
+            }
+
+            git checkout develop &&
+                git branch -d $Name &&
+                git push -d origin $Name ||
                 &{ throw $exeError }
         }
     }
