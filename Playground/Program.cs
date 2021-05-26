@@ -9,25 +9,7 @@ Console.CancelKeyPress += (_, e) => {
     e.Cancel = true;
 };
 
-try
-{
-    Console.WriteLine("Press Ctl-C to terminate.");
-    await VeryLongTask(cancellationTokenSource.Token);
-}
-catch (OperationCanceledException)
-{
-    Console.WriteLine();
-    Console.WriteLine("Boo! Operation cancelled!");
-}
+await RunInfiniteLoop(cancellationTokenSource.Token);
 
-async Task VeryLongTask(CancellationToken cancellationToken)
-{
-    Console.WriteLine("Starting a very long operation.");
-
-    while (true)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        Console.Write(".");
-        await Task.Delay(TimeSpan.FromSeconds(1));
-    }
-}
+Task RunInfiniteLoop(CancellationToken cancellationToken) =>
+    Task.Run(() => Console.ReadKey(true), cancellationToken);
