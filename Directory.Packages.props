@@ -2,5 +2,9 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-  <ItemGroup></ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageVersion Include="BenchmarkDotNet" Version="0.13.11" />
+  </ItemGroup>
 </Project>
